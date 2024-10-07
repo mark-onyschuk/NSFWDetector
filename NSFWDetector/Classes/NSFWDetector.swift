@@ -29,7 +29,7 @@ public class NSFWDetector {
     private let model: VNCoreMLModel
 
     public required init() {
-        guard let model = try? VNCoreMLModel(for: NSFW(configuration: MLModelConfiguration()).model) else {
+        guard let model = try? VNCoreMLModel(for: OpenNSFW(configuration: MLModelConfiguration()).model) else {
             fatalError("NSFW should always be a valid model")
         }
         self.model = model
