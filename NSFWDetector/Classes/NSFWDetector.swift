@@ -17,6 +17,9 @@ import Cocoa
 public typealias ImageRef = NSImage
 #endif
 
+/// A `Float` value from 0.0 to 1.0 indicating confidence whether an image
+/// is "not safe for work" (NSFW).
+public typealias NSFWConfidence = Float
 
 @available(iOS 12.0, *)
 public class NSFWDetector {
@@ -57,13 +60,13 @@ public class NSFWDetector {
     ///        print("Detection error: \(error)")
     ///    }
     ///    ```
-    func check(image: ImageRef) async throws -> Float {
+    public func check(image: ImageRef) async throws -> NSFWConfidence {
         try await withCheckedThrowingContinuation { continuation in
             // Call the original `check` method, passing in the completion handler.
             self.check(image: image) {
                 switch $0 {
                 case .success(let nsfwConfidence):
-                    continuation.resume(returning: nsfwConfidence)
+                    continuation.resume(returning: nsfwConfidence as NSFWConfidence)
                 case .error(let error):
                     continuation.resume(throwing: error)
                 }
