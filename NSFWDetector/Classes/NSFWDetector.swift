@@ -8,7 +8,15 @@
 import Foundation
 import CoreML
 import Vision
+
+#if os(iOS)
 import UIKit
+public typealias ImageRef = UIImage
+#elseif os(macOS)
+import Cocoa
+public typealias ImageRef = NSImage
+#endif
+
 
 @available(iOS 12.0, *)
 public class NSFWDetector {
@@ -24,6 +32,45 @@ public class NSFWDetector {
         self.model = model
     }
 
+    /// Asynchronously checks an image for NSFW content and returns a confidence score.
+    ///
+    /// This function wraps the existing `check(image:completion:)` method to provide an `async/await`
+    /// interface, allowing you to call it in a more Swift-native, linear fashion. The function returns
+    /// a `Float` representing the NSFW confidence score, where 0.0 indicates safe content and 1.0
+    /// indicates explicit content. If an error occurs during detection, the function throws an error.
+    ///
+    /// - Parameters:
+    ///    - image: The image to be checked, represented as an `ImageRef`.
+    ///
+    /// - Returns:
+    ///    A `Float` value between 0.0 and 1.0 representing the NSFW confidence score.
+    ///
+    /// - Throws:
+    ///    An `Error` if the detection fails.
+    ///
+    /// - Example:
+    ///    ```swift
+    ///    do {
+    ///        let confidence = try await yourClassInstance.check(image: yourImage)
+    ///        print("NSFW confidence: \(confidence)")
+    ///    } catch {
+    ///        print("Detection error: \(error)")
+    ///    }
+    ///    ```
+    func check(image: ImageRef) async throws -> Float {
+        try await withCheckedThrowingContinuation { continuation in
+            // Call the original `check` method, passing in the completion handler.
+            self.check(image: image) {
+                switch $0 {
+                case .success(let nsfwConfidence):
+                    continuation.resume(returning: nsfwConfidence)
+                case .error(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     /// The Result of an NSFW Detection
     ///
     /// - error: Detection was not successful
@@ -33,7 +80,7 @@ public class NSFWDetector {
         case success(nsfwConfidence: Float)
     }
 
-    public func check(image: UIImage, completion: @escaping (_ result: DetectionResult) -> Void) {
+    public func check(image: ImageRef, completion: @escaping (_ result: DetectionResult) -> Void) {
 
         // Create a requestHandler for the image
         let requestHandler: VNImageRequestHandler?
@@ -97,3 +144,18 @@ private extension NSFWDetector {
         }
     }
 }
+
+
+#if os(macOS)
+extension ImageRef {
+    var cgImage: CGImage? {
+        cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+    
+    var ciImage: CIImage? {
+        tiffRepresentation
+            .flatMap { NSBitmapImageRep(data: $0) }
+            .flatMap { CIImage(bitmapImageRep: $0) }
+    }
+}
+#endif

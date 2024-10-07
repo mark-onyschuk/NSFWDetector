@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "NSFWDetector",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v15), .macOS(.v14)],
     products: [
         .library(
             name: "NSFWDetector",
